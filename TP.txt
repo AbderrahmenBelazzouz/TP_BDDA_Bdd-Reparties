@@ -1,0 +1,501 @@
+  CREATE TABLE DepartementOran 
+   (	idDe NUMBER(*,0), 
+	nom VARCHAR2(45 BYTE), 
+	ville VARCHAR2(60 BYTE) DEFAULT ('Oran')
+   ) ;
+   
+   CREATE TABLE EmployeOran
+   (    idEm NUMBER(*,0),
+   nom VARCHAR2(45 BYTE),
+   fonction VARCHAR2(60 BYTE),
+   idDe NUMBER(*,0)
+   ) ;
+   
+
+    CREATE TABLE DepartementSba 
+   (	idDe NUMBER(*,0), 
+	nom VARCHAR2(45 BYTE), 
+	ville VARCHAR2(60 BYTE) DEFAULT ('Sba')
+   ) ;
+   
+   CREATE TABLE EmployeSba
+   (    idEm NUMBER(*,0),
+   nom VARCHAR2(45 BYTE),
+   fonction VARCHAR2(60 BYTE),
+   idDe NUMBER(*,0)
+   ) ;
+   
+
+
+
+
+insert into DepartementOran values(1,'dep1','oran');
+insert into DepartementOran values(2,'dep2','oran');
+insert into EmployeOran values(1,'aa','directeur',1);
+insert into EmployeOran values(2,'bb','superviseur',1);
+insert into EmployeOran values(3,'cc','agent',2);
+insert into EmployeOran values(4,'dd','agent',2);
+commit;
+
+
+
+insert into DepartementSba values(3,'dep1','sba');
+insert into DepartementSba values(4,'dep2','sba');
+insert into EmployeSba values(5,'hh','directeur',3);
+insert into EmployeSba values(6,'jj','superviseur',4);
+insert into EmployeSba values(7,'ww','agent',4);
+insert into EmployeSba values(8,'pp','agent',4);
+commit;
+
+
+
+
+
+
+
+
+
+TRIGGERS:
+
+
+create or replace trigger departement_trg instead of insert on departement
+declare 
+exst number(1);
+
+begin
+
+insert into departement
+(idde, nom, ville) 
+
+values
+(:new.idde, :new.nom, :new.ville);
+
+if :new.idde is not null then
+    select case 
+                when exists(select idde 
+                            from departement)
+                then 1
+                else 0
+            end into exst
+    from dual;
+    
+    if exst = 1 then
+    DBMS_OUTPUT.put_line('NO YOU CANNOT');
+  else
+    DBMS_OUTPUT.put_line('YES YOU CAN'); 
+  end if;
+    
+    
+
+-- insert into employe(idem, nom, fonction, idde)
+-- values(:new.idem , :new.nom, :new.fonction , Tidde);
+ end if;
+end;
+
+
+================================================
+create or replace trigger departement_trg instead of insert on departement
+declare 
+exst number(1);
+
+begin
+
+insert into departement
+(idde, nom, ville) 
+
+values
+(:new.idde, :new.nom, :new.ville);
+
+if :new.idde is not null then
+    select case 
+                when exists(select idde 
+                            from departement)
+                then 1
+                else 0
+            end into exst
+    from dual;
+    
+    if exst = 1 then
+    
+    DBMS_OUTPUT.put_line('NO YOU CANNOT');
+  else
+    
+    update departement
+    set idde = :new.idde
+    where ville = :new.ville;
+  end if;
+    
+    
+
+-- insert into employe(idem, nom, fonction, idde)
+-- values(:new.idem , :new.nom, :new.fonction , Tidde);
+ end if;
+end;
+
+
+==============================
+drop trigger departement_trg;
+
+
+
+create or replace trigger departement_trg instead of insert on departement for each row
+
+declare 
+counter integer;
+
+begin
+select * into counter from
+
+(SELECT COUNT(rownum) FROM departement d
+        WHERE d.idde = :new.idde);
+  IF counter = 1 THEN
+  RAISE_APPLICATION_ERROR( -20003,
+  'Error: duplicate application. You have already applied for this position.');
+  END IF;
+
+
+
+
+insert into departement
+(idde, nom, ville) 
+
+values (:new.idde, :new.nom, :new.ville);
+
+
+end departement_trg;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==================================================== 
+::::::::::::::::::: JUSTE :::::::::::::::::::
+
+
+drop trigger Departement_trg;
+
+
+create or replace trigger departement_trg instead of insert on departement for each row
+declare    
+departementsba number := 0; 
+departementoran number := 0;
+departementsba_v number := 0; 
+departementoran_v number := 0;
+begin
+    select count(*) into departementsba from departementSba where idDe=:new.idDe;
+    select count(*) into departementoran from DepartementOran where idDe=:new.idDe;
+    select count(*) into departementsba_v from DepartementSba where ville=:new.ville;
+    select count(*) into departementoran_v from DepartementOran where ville=:new.ville;
+        
+        if departementsba > 0 and departementoran > 0 then 
+                 RAISE_APPLICATION_ERROR(-20102, 'Les departements existent');
+        else
+                 if departementoran=0 and departementoran_v > 0 then insert into departementoran values(:new.idDe,:new.nom,:new.ville);
+                 end if;
+        if departementsba = 0 and departementsba_v > 0 then insert into departementSba values(:new.idDe,:new.nom,:new.ville);
+        end if;
+        end if;
+end;        
+
+
+
+
+
+insert into departement values(7,'dep4','sba');
+commit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop trigger Departement_update_trg;
+
+ 
+      create or replace trigger Departement_update_trg
+      instead of insert on  Departement
+      for each row
+declare    
+
+departementsbaI number := 0; 
+departementoranI number := 0;
+
+begin
+    select count(*) into departementsbaI from DepartementSba where idDe=:old.idDe; --Value present in table before the Update
+    select count(*) into departementoranI from DepartementOran where idDe=:old.idDe;
+       
+        if departementsbaI = 0 and departementoranI = 0 then 
+                 RAISE_APPLICATION_ERROR(00002, 'Le departement n existe pas');
+        else
+                 if departementsbaI > 0 and :new.ville='sba' 
+                 then 
+                  update DepartementSba set idDe=:new.idDe,nom=:new.nom,ville=:new.ville where  idDe=:old.idDe;
+                 end if;
+                 if departementsbaI > 0 and :new.ville='oran' 
+                 then 
+                  RAISE_APPLICATION_ERROR(00003, 'la ville doit etre sba');
+                 end if;
+                 
+                 
+                 
+                 if departementoranI > 0 and :new.ville='oran'
+                 then 
+                  update DepartementOran set idDe=:new.idDe,nom=:new.nom,ville=:new.ville where  idDe=:old.idDe;
+                 end if;
+                 if departementoranI > 0 and :new.ville='sba' 
+                 then 
+                  RAISE_APPLICATION_ERROR(00004, 'la ville doit etre oran');
+                 end if;
+                 
+       end if;
+end;
+
+
+
+update DepartementSba
+        set idDe = 10 , nom = 'dep10' , ville = 'sba' 
+        where idDe=6;
+commit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop trigger Departement_delete_trg;
+
+ 
+      create or replace trigger Departement_delete_trg
+      instead of delete on  Departement
+      for each row
+declare    
+
+departementsbaI number := 0; 
+departementoranI number := 0;
+
+begin
+    select count(*) into departementsbaI from DepartementSba where idDe=:old.idDe; --Value present in table before the Update
+    select count(*) into departementoranI from DepartementOran where idDe=:old.idDe;
+       
+        if departementsbaI = 0 and departementoranI = 0 then 
+                 RAISE_APPLICATION_ERROR(00005, 'Le departement n existe pas');
+        else
+                 if departementsbaI > 0 and :old.ville='sba' 
+                 then 
+                  delete from DepartementSba where  idDe=:old.idDe;
+                 end if;
+                            
+                                 
+                 if departementoranI > 0 and :old.ville='oran'
+                 then 
+                 delete from DepartementOran where  idDe=:old.idDe;
+                 end if;
+                 
+                 
+       end if;
+end;
+
+
+
+delete 
+        from DepartementOran
+        where idDe=11;
+commit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop trigger Employe_trg;
+
+
+create or replace trigger Employe_trg
+      instead of insert on  employe
+      for each row
+declare    
+employesbaI number := 0; 
+employeoranI number := 0;
+employesbaV number := 0; 
+employeoranV number := 0;
+begin
+    select count(*) into employesbaI from employesba where idEm=:new.idEm;
+    select count(*) into employeoranI from EmployeOran where idEm=:new.idEm;
+    select count(*) into employesbaV from departementsba where idDe=:new.idDe;
+    select count(*) into employeoranV from departementoran where idDe=:new.idDe;
+        
+        if employesbaI > 0 and employeoranI > 0 then 
+                 RAISE_APPLICATION_ERROR(00006, 'L employer existe');
+        else
+                 if employeoranI =0 and employeoranV > 0 then insert into employeoran values(:new.idEm,:new.nom,:new.fonction ,:new.idDe);
+                 end if;
+        if employesbaI = 0 and employesbaV > 0 then insert into employesba values(:new.idEm,:new.nom,:new.fonction,:new.idDe);
+        end if;
+        end if;
+end; 
+
+
+
+
+
+insert into employe values(10,'zz','directeur',2);
+commit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop trigger Employe_update_trg;
+
+
+create or replace trigger Employe_update_trg instead of insert on  Employe for each row
+declare    
+employesbaI number := 0; 
+employeoranI number := 0;
+
+begin
+    select count(*) into employesbaI from employeSba where idEm=:old.idEm;
+    select count(*) into employeoranI from employeOran where idEm=:old.idEm;
+        if employesbaI = 0 and employeoranI = 0 then 
+                 RAISE_APPLICATION_ERROR(20010, 'L employer n existe pas');
+        else
+                 if employesbaI > 0
+                 then 
+                  update employeSba SET idEm=:new.idEm,nom=:new.nom,fonction=:new.fonction,idDe=:new.idDe where  idEm=:old.idEm;
+                 end if;
+                 if employeoranI > 0
+                 then 
+                 update employeOran set idEm=:new.idEm,nom=:new.nom,fonction=:new.fonction,idDe=:new.idDe where  idEm=:old.idEm;
+        end if;
+        end if;
+end; 
+
+
+
+update EmployeOran
+        set idEm = 9 , nom = 'abbe' , fonction = 'etudiant' , idDe = 2
+        where idEm = 9;
+commit;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+drop trigger Employe_delete_trg;
+
+
+create or replace trigger Employe_delete_trg instead of delete on  Employe for each row
+declare    
+employesbaI number := 0; 
+employeoranI number := 0;
+begin
+    select count(*) into employesbaI from employeSba where idEm=:old.idEm;
+    select count(*) into employeoranI from employeOran where idEm=:old.idEm;
+        if employesbaI = 0 and employeoranI = 0 then 
+                 RAISE_APPLICATION_ERROR(20010, 'L employer n existe pas');
+        else
+                 if employesbaI > 0
+                 then 
+                  Delete from employesba where idEm=:old.idEm;
+                 end if;
+                 if employeoranI > 0
+                 then 
+                Delete from employeoran where idEm=:old.idEm;
+        end if;
+        end if;
+end; 
+
+
+
+delete 
+        from employeoran
+        where idEm=10;
+commit;
+
+
+
+
+
+
+
